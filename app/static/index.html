@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Panneau de contrôle — Serveur multitâche</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-2: #171c27;
+    --line: #262c39;
+    --text: #e6e8eb;
+    --muted: #6b7280;
+    --amber: #f2b705;
+    --amber-dim: #6b5306;
+    --green: #3ecf8e;
+    --green-dim: #163f2e;
+    --red: #ff5d5d;
+    --red-dim: #401616;
+    --blue: #5eb0ff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0) 0 0/22px 22px,
+      var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk', sans-serif;
+    min-height:100vh;
+    padding:32px 20px 60px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;}
+
+  /* ---- Header ---- */
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:20px;
+    margin-bottom:28px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .brand-eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.18em;
+    color:var(--amber);
+    text-transform:uppercase;
+    margin:0 0 6px;
+  }
+  h1{
+    font-size:26px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  h1 .dim{color:var(--muted); font-weight:500;}
+
+  .conn{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px 12px;
+  }
+  .conn input{
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    width:230px;
+  }
+  .conn input::placeholder{color:var(--muted);}
+  .dot{
+    width:9px;height:9px;border-radius:50%;
+    background:var(--muted);
+    flex-shrink:0;
+    transition:background .2s ease, box-shadow .2s ease;
+  }
+  .dot.ok{background:var(--green); box-shadow:0 0 8px var(--green);}
+  .dot.bad{background:var(--red); box-shadow:0 0 8px var(--red);}
+  .dot.pulse{animation:pulse 1.1s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  /* ---- Layout ---- */
+  .grid{
+    display:grid;
+    grid-template-columns: 300px 1fr;
+    gap:20px;
+  }
+  @media (max-width:760px){ .grid{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px;
+  }
+  .panel + .panel{margin-top:16px;}
+  .panel-title{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:0 0 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel-title::before{
+    content:'';
+    width:6px;height:6px;
+    background:var(--amber);
+    display:inline-block;
+  }
+
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin:12px 0 5px;
+  }
+  label:first-of-type{margin-top:0;}
+  input[type=number]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:9px 10px;
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:13.5px;
+    outline:none;
+  }
+  input[type=number]:focus{border-color:var(--amber);}
+
+  button{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    border:none;
+    border-radius:6px;
+    padding:10px 14px;
+    cursor:pointer;
+    transition:transform .08s ease, filter .15s ease;
+  }
+  button:active{transform:translateY(1px);}
+  .btn-primary{
+    background:var(--amber);
+    color:#1a1502;
+    width:100%;
+    margin-top:14px;
+  }
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-primary:disabled{background:var(--amber-dim); color:var(--muted); cursor:not-allowed;}
+
+  .btn-ghost{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-size:11px;
+    padding:5px 9px;
+  }
+  .btn-ghost:hover{color:var(--text); border-color:var(--muted);}
+
+  /* ---- Queue / tickets ---- */
+  .queue-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  .ticket-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-height:520px;
+    overflow-y:auto;
+  }
+  .empty{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color:var(--muted);
+    text-align:center;
+    padding:40px 10px;
+    border:1px dashed var(--line);
+    border-radius:8px;
+  }
+
+  .ticket{
+    position:relative;
+    display:grid;
+    grid-template-columns: auto 1fr auto;
+    align-items:center;
+    gap:14px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px 14px;
+    animation:slide-in .25s ease;
+  }
+  @keyframes slide-in{from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);}}
+
+  .ticket::before{
+    content:'';
+    position:absolute;
+    left:-1px; top:0; bottom:0;
+    width:3px;
+    border-radius:8px 0 0 8px;
+    background:var(--muted);
+  }
+  .ticket.pending::before, .ticket.started::before{background:var(--amber);}
+  .ticket.success::before{background:var(--green);}
+  .ticket.failure::before{background:var(--red);}
+
+  .t-status{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:34px;height:34px;
+    border-radius:50%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .t-status .dot{width:8px;height:8px;}
+
+  .t-body .t-id{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .t-body .t-desc{
+    font-size:13.5px;
+    margin-top:2px;
+  }
+  .t-body .t-result{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color:var(--green);
+    margin-top:4px;
+  }
+  .t-body .t-error{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--red);
+    margin-top:4px;
+  }
+
+  .t-tag{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:4px 8px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .tag-pending{background:var(--amber-dim); color:var(--amber);}
+  .tag-started{background:var(--amber-dim); color:var(--amber);}
+  .tag-success{background:var(--green-dim); color:var(--green);}
+  .tag-failure{background:var(--red-dim); color:var(--red);}
+
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    margin-top:36px;
+    letter-spacing:0.04em;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="brand-eyebrow">Console d'exploitation</p>
+      <h1>Serveur <span class="dim">multitâche</span></h1>
+    </div>
+    <div class="conn">
+      <span class="dot" id="connDot"></span>
+      <input id="apiUrl" type="text" placeholder="https://ton-service.up.railway.app" />
+      <button class="btn-ghost" onclick="checkConnection()">Tester</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- Colonne gauche : lancement de tâches -->
+    <div>
+      <div class="panel">
+        <p class="panel-title">Addition</p>
+        <label for="addA">Valeur A</label>
+        <input type="number" id="addA" value="3" />
+        <label for="addB">Valeur B</label>
+        <input type="number" id="addB" value="4" />
+        <button class="btn-primary" onclick="lancerAddition()">Envoyer la tâche</button>
+      </div>
+
+      <div class="panel">
+        <p class="panel-title">Tâche longue</p>
+        <label for="dureeTache">Durée (secondes)</label>
+        <input type="number" id="dureeTache" value="8" />
+        <button class="btn-primary" onclick="lancerTacheLongue()">Envoyer la tâche</button>
+      </div>
+    </div>
+
+    <!-- Colonne droite : file d'attente -->
+    <div class="panel">
+      <div class="queue-head">
+        <p class="panel-title" style="margin:0;">File d'exécution</p>
+        <button class="btn-ghost" onclick="viderFile()">Effacer l'historique</button>
+      </div>
+      <div class="ticket-list" id="ticketList">
+        <div class="empty" id="emptyState">Aucune tâche envoyée pour l'instant.<br/>Lance une tâche depuis le panneau de gauche.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>REDIS · CELERY · FASTAPI — actualisation automatique toutes les 2s</footer>
+</div>
+
+<script>
+let taches = []; // { id, type, statut, resultat, erreur }
+let pollTimer = null;
+
+function apiBase(){
+  return document.getElementById('apiUrl').value.trim().replace(/\/$/, '');
+}
+
+async function checkConnection(){
+  const dot = document.getElementById('connDot');
+  const base = apiBase();
+  if(!base){ dot.className = 'dot'; return; }
+  dot.className = 'dot pulse';
+  try{
+    const res = await fetch(base + '/');
+    if(res.ok){ dot.className = 'dot ok'; startPolling(); }
+    else { dot.className = 'dot bad'; }
+  }catch(e){
+    dot.className = 'dot bad';
+  }
+}
+
+function render(){
+  const list = document.getElementById('ticketList');
+  const empty = document.getElementById('emptyState');
+  if(taches.length === 0){
+    list.innerHTML = '';
+    list.appendChild(empty);
+    return;
+  }
+  list.innerHTML = taches.slice().reverse().map(t => {
+    const statutClasse = (t.statut || 'pending').toLowerCase();
+    const tagClasse = 'tag-' + statutClasse;
+    let extra = '';
+    if(t.statut === 'SUCCESS' && t.resultat !== undefined && t.resultat !== null){
+      extra = `<div class="t-result">→ résultat : ${JSON.stringify(t.resultat)}</div>`;
+    } else if(t.statut === 'FAILURE'){
+      extra = `<div class="t-error">Échec de la tâche</div>`;
+    }
+    return `
+      <div class="ticket ${statutClasse}">
+        <div class="t-status"><span class="dot ${t.statut==='SUCCESS'?'ok':(t.statut==='FAILURE'?'bad':'pulse')}"></span></div>
+        <div class="t-body">
+          <div class="t-id">${t.id}</div>
+          <div class="t-desc">${t.type}</div>
+          ${extra}
+        </div>
+        <div class="t-tag ${tagClasse}">${traduireStatut(t.statut)}</div>
+      </div>`;
+  }).join('');
+}
+
+function traduireStatut(s){
+  switch(s){
+    case 'PENDING': return 'en attente';
+    case 'STARTED': return 'en cours';
+    case 'SUCCESS': return 'terminée';
+    case 'FAILURE': return 'échec';
+    default: return 'en file';
+  }
+}
+
+async function lancerAddition(){
+  const a = Number(document.getElementById('addA').value);
+  const b = Number(document.getElementById('addB').value);
+  try{
+    const res = await fetch(apiBase() + '/taches/addition', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({a, b})
+    });
+    const data = await res.json();
+    taches.push({ id:data.task_id, type:`Addition ${a} + ${b}`, statut:'PENDING' });
+    render();
+    startPolling();
+  }catch(e){ alert("Impossible de contacter le serveur. Vérifie l'URL en haut à droite."); }
+}
+
+async function lancerTacheLongue(){
+  const duree = Number(document.getElementById('dureeTache').value);
+  try{
+    const res = await fetch(apiBase() + `/taches/longue?duree=${duree}`, { method:'POST' });
+    const data = await res.json();
+    taches.push({ id:data.task_id, type:`Tâche longue (${duree}s)`, statut:'PENDING' });
+    render();
+    startPolling();
+  }catch(e){ alert("Impossible de contacter le serveur. Vérifie l'URL en haut à droite."); }
+}
+
+async function rafraichirStatuts(){
+  const base = apiBase();
+  if(!base) return;
+  const enAttente = taches.filter(t => t.statut !== 'SUCCESS' && t.statut !== 'FAILURE');
+  for(const t of enAttente){
+    try{
+      const res = await fetch(base + '/taches/' + t.id);
+      const data = await res.json();
+      t.statut = data.statut;
+      t.resultat = data.resultat;
+    }catch(e){ /* silencieux */ }
+  }
+  render();
+}
+
+function startPolling(){
+  if(pollTimer) return;
+  pollTimer = setInterval(rafraichirStatuts, 2000);
+}
+
+function viderFile(){
+  taches = [];
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
